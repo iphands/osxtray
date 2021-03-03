@@ -1,0 +1,11 @@
+[package]
+name = "osxtray"
+version = "0.1.0"
+authors = ["Ian Hads <iphands@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+objc = "0.2"
+calx = "0.1"
+cocoa = "0.24"
+coreaudio-sys = "0.2"

@@ -10,8 +10,8 @@ use std::thread;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 
-use cocoa::base::{ nil, id };
-use cocoa::foundation::{ NSAutoreleasePool, NSString };
+use cocoa::base::{ nil, id, };
+use cocoa::foundation::{ NSAutoreleasePool, NSString, };
 
 use cocoa::appkit::{ NSApp,
                      NSApplication,
@@ -67,8 +67,10 @@ fn main() {
 
         thread::spawn(move || {
             let btn = button_ptr as cocoa::base::id;
-            let muted = load_image("/Users/iphands/prog/osx/osxtray/assets/muted.png");
-            let unmuted = load_image("/Users/iphands/prog/osx/osxtray/assets/unmuted.png");
+
+            let muted =   load_image("/tmp/osxtray/muted.png");
+            let unmuted = load_image("/tmp/osxtray/unmuted.png");
+
             loop {
                 if rx.recv().unwrap() {
                     btn.setImage_(unmuted);

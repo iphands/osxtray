@@ -9,6 +9,7 @@ not setup new listeners when devices changes (includes headphones plug/unplug)
 ```shell
 $ git clone https://github.com/iphands/osxtray.git
 $ cd osxtray
+$ mkdir -p /tmp/osxtray && cp ./assets/*png /tmp/osxtray/
 $ cargo run --release
 ```
 

@@ -32,15 +32,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 
 [[package]]
-name = "calx"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76df67494110eee3f57ec639fdaf87b5f130bf6ef063cf1bc34b83a8b52e307d"
-dependencies = [
- "coreaudio-sys",
-]
-
-[[package]]
 name = "cexpr"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -234,7 +225,6 @@ dependencies = [
 name = "osxtray"
 version = "0.1.0"
 dependencies = [
- "calx",
  "cocoa",
  "coreaudio-sys",
  "objc",

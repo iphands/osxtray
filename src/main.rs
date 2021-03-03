@@ -1,6 +1,5 @@
 // #![allow(warnings, unused)]
 
-extern crate calx;
 extern crate cocoa;
 extern crate coreaudio_sys;
 extern crate objc;

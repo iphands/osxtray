@@ -10,6 +10,7 @@ WIP at the moment there are lots of issues:
 $ git clone https://github.com/iphands/osxtray.git
 $ cd osxtray
 $ cargo run --release
+```
 
 ## How to toggle mute from keyboard
 

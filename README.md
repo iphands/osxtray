@@ -20,6 +20,6 @@ And this [helpful hint](https://superuser.com/a/397770) for the AppleScript
 ## Screenshots
 <table>
  <tr>
-  <td><img src="https://raw.githubusercontent.com/iphands/osxtray/main/assets/screenshot.png" alt="screenshot"></td>
+  <td><img src="https://raw.githubusercontent.com/iphands/osxtray/main/assets/demo.gif" alt="screenshot"></td>
  </tr>
 </table>

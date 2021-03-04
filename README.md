@@ -6,6 +6,9 @@ WIP at the moment there are some issues
 ~~including the code does not setup new listeners when devices changes (includes headphones plug/unplug)~~
 Still need to clean up the old listeners on hardware change :D
 
+There is still some issue where with two devices osxtray might report mute, but Zoom is looking at the
+other mic. I'll probably change the toggle (Apple Script) code to just mute all devices instead of targeting the primary.
+
 ## Install / Run
 ```shell
 $ git clone https://github.com/iphands/osxtray.git

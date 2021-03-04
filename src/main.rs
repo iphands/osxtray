@@ -38,12 +38,23 @@ use coreaudio_sys::{
     kAudioObjectPropertyScopeInput,
     kAudioHardwarePropertyDevices, };
 
+const INPUT_PROPERTY_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
+    mSelector: kAudioHardwarePropertyDevices,
+    mScope:    kAudioObjectPropertyScopeInput,
+    mElement:  kAudioObjectPropertyElementMaster,
+};
+
+const INPUT_VOLUME_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
+    mSelector: kAudioDevicePropertyVolumeScalar,
+    mScope:    kAudioObjectPropertyScopeInput,
+    mElement:  kAudioObjectPropertyElementMaster,
+};
+
 fn load_image(path: &str) -> id {
-    unsafe {
+    return unsafe {
         let img = NSString::alloc(nil).init_str(path);
-        let icon = NSImage::alloc(nil).initWithContentsOfFile_(img);
-        return icon;
-    }
+        NSImage::alloc(nil).initWithContentsOfFile_(img)
+    };
 }
 
 fn init_cocoa() -> (cocoa::base::id, cocoa::base::id) {
@@ -143,26 +154,14 @@ fn allocate_array<T>(size: usize) -> Vec<T> {
     return buffer;
 }
 
-const INPUT_PROPERTY_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
-    mSelector: kAudioHardwarePropertyDevices,
-    mScope:    kAudioObjectPropertyScopeInput,
-    mElement:  kAudioObjectPropertyElementMaster,
-};
-
-const INPUT_VOLUME_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
-    mSelector: kAudioDevicePropertyVolumeScalar,
-    mScope:    kAudioObjectPropertyScopeInput,
-    mElement:  kAudioObjectPropertyElementMaster,
-};
-
 fn input_property_listener(audio_object_id: AudioObjectID, tx_ptr: u64) {
 
     extern fn listener(id: AudioObjectID,
-                       _number_of_addresses: u32,
+                       _addresses_count: u32,
                        _addresses: *const AudioObjectPropertyAddress,
-                       data: *mut c_void ) -> OSStatus {
+                       client_input: *mut c_void ) -> OSStatus {
 
-        let tmp: *const Sender<bool> = data as u64 as *const Sender<bool>;
+        let tmp: *const Sender<bool> = client_input as u64 as *const Sender<bool>;
         let sender = unsafe { &*tmp };
         sender.send(0.0 != get_volume_from_device(id)).unwrap();
         return 0;

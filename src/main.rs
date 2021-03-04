@@ -11,7 +11,7 @@ use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 
 use cocoa::base::{ nil, id, };
-use cocoa::foundation::{ NSAutoreleasePool, NSString, };
+use cocoa::foundation::NSString;
 
 use cocoa::appkit::{ NSApp,
                      NSApplication,
@@ -46,44 +46,56 @@ fn load_image(path: &str) -> id {
     }
 }
 
-fn main() {
-    unsafe {
-        let _pool = NSAutoreleasePool::new(nil);
-
+fn init_cocoa() -> (cocoa::base::id, cocoa::base::id) {
+    let app = unsafe {
         let app = NSApp();
+        app
+    };
+
+    let button = unsafe {
         app.setActivationPolicy_(NSApplicationActivationPolicyProhibited);
 
         let status_item = NSStatusBar::systemStatusBar(nil).statusItemWithLength_(NSVariableStatusItemLength);
         let button: cocoa::base::id = status_item.button();
-        let audio_obj_id: AudioObjectID = (get_input_device())[0];
 
-        let (tx, rx) = mpsc::channel();
-        let tx_ptr = &tx as *const Sender<bool> as u64;
-        let button_ptr = button as u64;
+        button
+    };
 
-        thread::spawn(move || {
-            input_property_listener(audio_obj_id, tx_ptr)
-        });
+    return (app, button);
+}
 
-        thread::spawn(move || {
-            let btn = button_ptr as cocoa::base::id;
+fn main() {
+    //  let _pool = NSAutoreleasePool::new(nil);
+    let (app, button) = init_cocoa();
 
-            let muted =   load_image("/tmp/osxtray/muted.png");
-            let unmuted = load_image("/tmp/osxtray/unmuted.png");
+    let audio_obj_id: AudioObjectID = (get_input_device())[0];
 
-            loop {
-                if rx.recv().unwrap() {
-                    btn.setImage_(unmuted);
-                } else {
-                    btn.setImage_(muted);
-                }
+    let (tx, rx) = mpsc::channel();
+    let tx_ptr = &tx as *const Sender<bool> as u64;
+    let button_ptr = button as u64;
+
+    thread::spawn(move || {
+        input_property_listener(audio_obj_id, tx_ptr)
+    });
+
+    thread::spawn(move || {
+        let btn = button_ptr as cocoa::base::id;
+
+        let muted =   load_image("/tmp/osxtray/muted.png");
+        let unmuted = load_image("/tmp/osxtray/unmuted.png");
+
+        loop {
+            if rx.recv().unwrap() {
+                unsafe { btn.setImage_(unmuted) };
+            } else {
+                unsafe { btn.setImage_(muted)} ;
             }
-        });
+        }
+    });
 
-        // set the initial state of the icon
-        tx.send(0.0 != get_volume_from_device(audio_obj_id)).unwrap();
-        app.run();
-    }
+    // set the initial state of the icon
+    tx.send(0.0 != get_volume_from_device(audio_obj_id)).unwrap();
+    unsafe { app.run(); }
 }
 
 fn get_volume_from_device(audio_obj_id: u32) -> f32 {

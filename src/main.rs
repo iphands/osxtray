@@ -4,6 +4,8 @@ extern crate cocoa;
 extern crate coreaudio_sys;
 extern crate objc;
 
+mod selectors;
+
 use std::os::raw::c_void;
 use std::thread;
 
@@ -31,30 +33,6 @@ use coreaudio_sys::{
     OSStatus,
     UInt32,
     kAudioObjectSystemObject,
-    kAudioHardwarePropertyDefaultInputDevice,
-    kAudioObjectPropertyElementMaster,
-    kAudioDevicePropertyVolumeScalar,
-    kAudioObjectPropertyScopeGlobal,
-    // kAudioDevicePropertyMute,
-    kAudioObjectPropertyScopeInput,
-    kAudioHardwarePropertyDevices, };
-
-const INPUT_PROPERTY_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
-    mSelector: kAudioHardwarePropertyDevices,
-    mScope:    kAudioObjectPropertyScopeInput,
-    mElement:  kAudioObjectPropertyElementMaster,
-};
-
-const INPUT_VOLUME_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
-    mSelector: kAudioDevicePropertyVolumeScalar,
-    mScope:    kAudioObjectPropertyScopeInput,
-    mElement:  kAudioObjectPropertyElementMaster,
-};
-
-const HARDWARE_CHANGE:  AudioObjectPropertyAddress = AudioObjectPropertyAddress {
-    mSelector: kAudioHardwarePropertyDefaultInputDevice,
-    mScope:    kAudioObjectPropertyScopeGlobal,
-    mElement:  kAudioObjectPropertyElementMaster,
 };
 
 fn load_image<T>(array: &[T]) -> id {
@@ -87,7 +65,6 @@ fn init_cocoa() -> (cocoa::base::id, cocoa::base::id) {
 }
 
 fn main() {
-    //  let _pool = NSAutoreleasePool::new(nil);
     let (app, button) = init_cocoa();
 
     let audio_obj_id: AudioObjectID = (get_input_device())[0];
@@ -96,9 +73,9 @@ fn main() {
     let tx_ptr = &tx as *const Sender<bool> as u64;
     let button_ptr = button as u64;
 
-    // thread::spawn(move || {
-    //     input_property_listener(audio_obj_id, tx_ptr)
-    // });
+    thread::spawn(move || {
+        input_property_listener(audio_obj_id, tx_ptr)
+    });
 
     thread::spawn(move || {
         hardware_change_listener(tx_ptr);
@@ -120,15 +97,65 @@ fn main() {
     });
 
     // set the initial state of the icon
-    tx.send(0.0 != get_volume_from_device(audio_obj_id)).unwrap();
+    tx.send(0.0 != get_volume_from_all_devices()).unwrap();
     unsafe { app.run(); }
+}
+
+fn get_volume_from_all_devices() -> f32 {
+    let mut size: usize = 0;
+    audio_object_get_property_data_size(
+        kAudioObjectSystemObject,
+        &selectors::ALL_INPUTS,
+        0,
+        std::ptr::null_mut::<c_void>(),
+        &mut size,
+    );
+
+    let mut array: Vec<AudioObjectID> = allocate_array(size);
+
+    let _ = audio_object_get_property_data(
+        kAudioObjectSystemObject,
+        &selectors::INPUT_PROPERTY_ADDRESS,
+        0,
+        std::ptr::null_mut::<c_void>(),
+        &mut size,
+        array.as_mut_ptr(),
+    );
+
+    let mut volume_total = 0.0;
+    // println!("--");
+    for device_id in array {
+        let volume = get_volume_from_device(device_id);
+        // println!("  Device: {}, vol: {}", device_id, volume);
+        volume_total += volume;
+    }
+
+    return volume_total;
+}
+
+fn audio_object_get_property_data_size<T>(
+    in_object_id: AudioObjectID,
+    in_address: &AudioObjectPropertyAddress,
+    in_qualifier_data_size: usize,
+    in_qualifier_data: *mut T,
+    out_data_size: *mut usize,
+) -> OSStatus {
+    return unsafe {
+        AudioObjectGetPropertyDataSize(
+            in_object_id,
+            in_address,
+            in_qualifier_data_size as UInt32,
+            in_qualifier_data as *mut c_void,
+            out_data_size as *mut UInt32,
+        )
+    };
 }
 
 fn get_volume_from_device(audio_obj_id: u32) -> f32 {
     let mut volume: f32 = 0.0;
     let _ = audio_object_get_property_data(
         audio_obj_id,
-        &INPUT_VOLUME_ADDRESS,
+        &selectors::INPUT_VOLUME_ADDRESS,
         0,
         std::ptr::null_mut::<c_void>(),
         &mut 4,
@@ -141,7 +168,7 @@ fn get_input_device() -> Vec<AudioObjectID> {
     let mut size: usize = 0;
     let _ = audio_object_get_property_data_size(
         kAudioObjectSystemObject,
-        &INPUT_PROPERTY_ADDRESS,
+        &selectors::INPUT_PROPERTY_ADDRESS,
         0,
         std::ptr::null_mut::<c_void>(),
         &mut size,
@@ -151,7 +178,7 @@ fn get_input_device() -> Vec<AudioObjectID> {
 
     let _ = audio_object_get_property_data(
         kAudioObjectSystemObject,
-        &INPUT_PROPERTY_ADDRESS,
+        &selectors::INPUT_PROPERTY_ADDRESS,
         0,
         std::ptr::null_mut::<c_void>(),
         &mut size,
@@ -179,21 +206,21 @@ fn hardware_change_listener(tx_ptr: u64) {
 
         // get new default device
         let audio_obj_id: AudioObjectID = (get_input_device())[0];
-        // println!("Got new default input device: {:?}", audio_obj_id);
+        println!("Got new default input device: {:?}", audio_obj_id);
 
         let tx_ptr = client_input as u64;
-        // println!("Got pointer to tx: {:?}", tx_ptr);
+        println!("Got pointer to tx: {:?}", tx_ptr);
 
         // setup new listener
         input_property_listener(audio_obj_id, tx_ptr);
-        // println!("Setup new listener");
+        println!("Setup new listener");
 
         return 0;
     }
 
     audio_object_add_property_listener(
         kAudioObjectSystemObject,
-        &HARDWARE_CHANGE,
+        &selectors::HARDWARE_CHANGE,
         Some(listener),
         tx_ptr,
     );
@@ -201,20 +228,21 @@ fn hardware_change_listener(tx_ptr: u64) {
 
 fn input_property_listener(audio_object_id: AudioObjectID, tx_ptr: u64) {
 
-    extern fn listener(id: AudioObjectID,
+    extern fn listener(_id: AudioObjectID,
                        _addresses_count: u32,
                        _addresses: *const AudioObjectPropertyAddress,
                        client_input: *mut c_void ) -> OSStatus {
 
         let tmp: *const Sender<bool> = client_input as u64 as *const Sender<bool>;
         let sender = unsafe { &*tmp };
-        sender.send(0.0 != get_volume_from_device(id)).unwrap();
+
+        sender.send(0.0 != get_volume_from_all_devices()).unwrap();
         return 0;
     }
 
     audio_object_add_property_listener(
         audio_object_id,
-        &INPUT_VOLUME_ADDRESS,
+        &selectors::INPUT_VOLUME_ADDRESS,
         Some(listener),
         tx_ptr,
     );
@@ -252,24 +280,6 @@ fn audio_object_get_property_data<Q, D>(
             in_qualifier_data as *mut c_void,
             io_data_size as *mut UInt32,
             out_data as *mut c_void,
-        )
-    };
-}
-
-fn audio_object_get_property_data_size<T>(
-    in_object_id: AudioObjectID,
-    in_address: &AudioObjectPropertyAddress,
-    in_qualifier_data_size: usize,
-    in_qualifier_data: *mut T,
-    out_data_size: *mut usize,
-) -> OSStatus {
-    return unsafe {
-        AudioObjectGetPropertyDataSize(
-            in_object_id,
-            in_address,
-            in_qualifier_data_size as UInt32,
-            in_qualifier_data as *mut c_void,
-            out_data_size as *mut UInt32,
         )
     };
 }

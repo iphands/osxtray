@@ -8,3 +8,7 @@ edition = "2018"
 objc = "0.2"
 cocoa = "0.24"
 coreaudio-sys = "0.2"
+
+[[bin]]
+name = "mic_toggler"
+path = "src/toggler.rs"

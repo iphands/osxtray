@@ -13,14 +13,24 @@ other mic. I'll probably change the toggle (Apple Script) code to just mute all 
 ```shell
 $ git clone https://github.com/iphands/osxtray.git
 $ cd osxtray
-$ cargo run --release
+$ cargo build --release && ./target/release/osxtray
+```
+
+You can also import the Automator workflow and use it as a quick action (touchbar)
+```shell
+$ cargo build --release
+$ mkdir -p ~/bin && cp ./target/release/mic_toggle ~/bin/
+$ cp -r workflow/Toggle.workflow  ~/Library/Services/
 ```
 
 ## How to toggle mute from keyboard
 
 I used this [AppleScript + Automator + keyboard shortcut](https://blog.fosketts.net/2010/08/09/assign-keyboard-shortcut-applescript-automator-service/) guide for now.
 
-And this [helpful hint](https://superuser.com/a/397770) for the AppleScript
+~~And this [helpful hint](https://superuser.com/a/397770) for the AppleScript~~
+
+Instead of using the AppleScript use the `./target/release/mic_toggle` binary.
+This helps mute/unmute all the mics that are on the systems.
 
 ## Screenshots
 <table>

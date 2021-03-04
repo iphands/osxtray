@@ -2,8 +2,9 @@
 
 Can't live my global microphone mute tray thingy.
 
-WIP at the moment there are some issues including the code does
-not setup new listeners when devices changes (includes headphones plug/unplug)
+WIP at the moment there are some issues ~~ including the code does
+not setup new listeners when devices changes (includes headphones plug/unplug) ~~
+Still need to clean up the old listeners on hardware change :D
 
 ## Install / Run
 ```shell

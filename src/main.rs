@@ -31,9 +31,10 @@ use coreaudio_sys::{
     OSStatus,
     UInt32,
     kAudioObjectSystemObject,
-    // kAudioHardwarePropertyDefaultInputDevice,
+    kAudioHardwarePropertyDefaultInputDevice,
     kAudioObjectPropertyElementMaster,
     kAudioDevicePropertyVolumeScalar,
+    kAudioObjectPropertyScopeGlobal,
     // kAudioDevicePropertyMute,
     kAudioObjectPropertyScopeInput,
     kAudioHardwarePropertyDevices, };
@@ -47,6 +48,12 @@ const INPUT_PROPERTY_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAd
 const INPUT_VOLUME_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
     mSelector: kAudioDevicePropertyVolumeScalar,
     mScope:    kAudioObjectPropertyScopeInput,
+    mElement:  kAudioObjectPropertyElementMaster,
+};
+
+const HARDWARE_CHANGE:  AudioObjectPropertyAddress = AudioObjectPropertyAddress {
+    mSelector: kAudioHardwarePropertyDefaultInputDevice,
+    mScope:    kAudioObjectPropertyScopeGlobal,
     mElement:  kAudioObjectPropertyElementMaster,
 };
 
@@ -89,8 +96,12 @@ fn main() {
     let tx_ptr = &tx as *const Sender<bool> as u64;
     let button_ptr = button as u64;
 
+    // thread::spawn(move || {
+    //     input_property_listener(audio_obj_id, tx_ptr)
+    // });
+
     thread::spawn(move || {
-        input_property_listener(audio_obj_id, tx_ptr)
+        hardware_change_listener(tx_ptr);
     });
 
     thread::spawn(move || {
@@ -156,6 +167,36 @@ fn allocate_array<T>(size: usize) -> Vec<T> {
     let mut buffer = Vec::<T>::with_capacity(elements);
     unsafe { buffer.set_len(elements); }
     return buffer;
+}
+
+fn hardware_change_listener(tx_ptr: u64) {
+    extern fn listener(_id: AudioObjectID,
+                       _addresses_count: u32,
+                       _addresses: *const AudioObjectPropertyAddress,
+                       client_input: *mut c_void ) -> OSStatus {
+
+        // TODO remove old listeners!
+
+        // get new default device
+        let audio_obj_id: AudioObjectID = (get_input_device())[0];
+        // println!("Got new default input device: {:?}", audio_obj_id);
+
+        let tx_ptr = client_input as u64;
+        // println!("Got pointer to tx: {:?}", tx_ptr);
+
+        // setup new listener
+        input_property_listener(audio_obj_id, tx_ptr);
+        // println!("Setup new listener");
+
+        return 0;
+    }
+
+    audio_object_add_property_listener(
+        kAudioObjectSystemObject,
+        &HARDWARE_CHANGE,
+        Some(listener),
+        tx_ptr,
+    );
 }
 
 fn input_property_listener(audio_object_id: AudioObjectID, tx_ptr: u64) {

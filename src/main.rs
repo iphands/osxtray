@@ -135,7 +135,7 @@ fn get_input_device() -> Vec<AudioObjectID> {
     return array;
 }
 
-pub fn allocate_array<T>(size: usize) -> Vec<T> {
+fn allocate_array<T>(size: usize) -> Vec<T> {
     let element_size = std::mem::size_of::<T>();
     let elements = size / element_size;
     let mut buffer = Vec::<T>::with_capacity(elements);
@@ -168,13 +168,27 @@ fn input_property_listener(audio_object_id: AudioObjectID, tx_ptr: u64) {
         return 0;
     }
 
-    let _ = unsafe {
+    audio_object_add_property_listener(
+        audio_object_id,
+        &INPUT_VOLUME_ADDRESS,
+        Some(listener),
+        tx_ptr,
+    );
+}
+
+fn audio_object_add_property_listener(
+    in_object_id: AudioObjectID,
+    in_address: &AudioObjectPropertyAddress,
+    in_listener: Option<unsafe extern "C" fn(u32, u32, *const AudioObjectPropertyAddress, *mut c_void) -> i32>,
+    in_listener_input_ptr: u64,
+) -> OSStatus {
+    return unsafe {
         AudioObjectAddPropertyListener(
-            audio_object_id,
-            &INPUT_VOLUME_ADDRESS,
-            Some(listener),
-            tx_ptr as *mut c_void,
-        );
+            in_object_id,
+            in_address,
+            in_listener,
+            in_listener_input_ptr as *mut c_void,
+        )
     };
 }
 
@@ -186,7 +200,7 @@ fn audio_object_get_property_data<Q, D>(
     io_data_size: *mut usize,
     out_data: *mut D,
 ) -> OSStatus {
-    unsafe {
+    return unsafe {
         AudioObjectGetPropertyData(
             in_object_id,
             in_address,
@@ -195,7 +209,7 @@ fn audio_object_get_property_data<Q, D>(
             io_data_size as *mut UInt32,
             out_data as *mut c_void,
         )
-    }
+    };
 }
 
 fn audio_object_get_property_data_size<T>(
@@ -205,7 +219,7 @@ fn audio_object_get_property_data_size<T>(
     in_qualifier_data: *mut T,
     out_data_size: *mut usize,
 ) -> OSStatus {
-    unsafe {
+    return unsafe {
         AudioObjectGetPropertyDataSize(
             in_object_id,
             in_address,
@@ -213,5 +227,5 @@ fn audio_object_get_property_data_size<T>(
             in_qualifier_data as *mut c_void,
             out_data_size as *mut UInt32,
         )
-    }
+    };
 }

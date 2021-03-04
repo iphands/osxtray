@@ -11,7 +11,7 @@ use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 
 use cocoa::base::{ nil, id, };
-use cocoa::foundation::NSString;
+use cocoa::foundation::{ NSData, }; // NSAutoreleasePool };
 
 use cocoa::appkit::{ NSApp,
                      NSApplication,
@@ -50,10 +50,14 @@ const INPUT_VOLUME_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddr
     mElement:  kAudioObjectPropertyElementMaster,
 };
 
-fn load_image(path: &str) -> id {
+fn load_image<T>(array: &[T]) -> id {
     return unsafe {
-        let img = NSString::alloc(nil).init_str(path);
-        NSImage::alloc(nil).initWithContentsOfFile_(img)
+        let data = NSData::dataWithBytes_length_(
+            nil,
+            array.as_ptr() as *const std::os::raw::c_void,
+            array.len() as u64,
+        );
+        NSImage::initWithData_(NSImage::alloc(nil), data)
     };
 }
 
@@ -92,8 +96,8 @@ fn main() {
     thread::spawn(move || {
         let btn = button_ptr as cocoa::base::id;
 
-        let muted =   load_image("/tmp/osxtray/muted.png");
-        let unmuted = load_image("/tmp/osxtray/unmuted.png");
+        let muted =   load_image(include_bytes!("../assets/muted.png"));
+        let unmuted = load_image(include_bytes!("../assets/unmuted.png"));
 
         loop {
             if rx.recv().unwrap() {

@@ -4,7 +4,7 @@ mod audio;
 
 fn main() {
     let vol = audio::get_volume_from_all_devices();
-    println!("Before: {}", vol);
+    // println!("Before: {}", vol);
     audio::toggle_all(vol == 0.0);
-    println!("After:  {}", audio::get_volume_from_all_devices());
+    // println!("After:  {}", audio::get_volume_from_all_devices());
 }

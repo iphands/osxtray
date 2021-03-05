@@ -50,10 +50,10 @@ pub fn get_volume_from_all_devices() -> f32 {
     );
 
     let mut volume_total = 0.0;
-    println!("--");
+    // println!("--");
     for device_id in array {
         let volume = get_volume_from_device(device_id);
-        println!("  Device: {}, vol: {}", device_id, volume);
+        // println!("  Device: {}, vol: {}", device_id, volume);
         volume_total += volume;
     }
 
@@ -82,16 +82,16 @@ pub fn toggle_all(mute: bool) {
     );
 
     let vol = if mute { 0.5 } else { 0.0 };
-    println!("--");
+    // println!("--");
     for device_id in array {
-        println!("  Setting {} to {}", device_id, vol);
+        // println!("  Setting {} to {}", device_id, vol);
         set_volume_on_device(device_id, vol);
     }
 }
 
 fn set_volume_on_device(audio_obj_id: u32, vol: f32) {
     let mut volume: f32 = vol;
-    println!("a: {} {}", audio_obj_id, volume);
+    // println!("a: {} {}", audio_obj_id, volume);
     let err = audio_object_set_property_data(
         audio_obj_id,
         &selectors::INPUT_VOLUME_ADDRESS,
@@ -100,7 +100,7 @@ fn set_volume_on_device(audio_obj_id: u32, vol: f32) {
         &mut 4,
         &mut volume as *mut f32,
     );
-    println!("b: {} {} {:?}", audio_obj_id, volume, err);
+    // println!("b: {} {} {:?}", audio_obj_id, volume, err);
 }
 
 fn audio_object_get_property_data_size<T>(

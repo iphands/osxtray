@@ -163,7 +163,7 @@ fn input_property_listener(tx_ptr: u64) {
 
         let mic_live = audio::get_mute_from_all_devices();
         sender.send(mic_live).unwrap();
-        println!("- mute event: mic_live == {} (all inputs)", mic_live);
+        println!("- mute event: mic_live == {}", mic_live);
         return 0;
     }
 

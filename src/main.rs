@@ -64,7 +64,7 @@ fn init_cocoa() -> (cocoa::base::id, cocoa::base::id) {
 fn main() {
     let (app, button) = init_cocoa();
     let (tx, rx) = mpsc::channel();
-    let (tx_mute, rx_mute) = mpsc::channel();
+    // let (tx_mute, rx_mute) = mpsc::channel();
 
     let tx_ptr = &tx as *const Sender<bool> as u64;
     let button_ptr = button as u64;
@@ -77,9 +77,9 @@ fn main() {
         hardware_change_listener(tx_ptr);
     });
 
-    thread::spawn(move || {
-        hack_keep_muted(rx_mute);
-    });
+    // thread::spawn(move || {
+    //     hack_keep_muted(rx_mute);
+    // });
 
     thread::spawn(move || {
         let btn = button_ptr as cocoa::base::id;
@@ -90,37 +90,37 @@ fn main() {
         loop {
             if rx.recv().unwrap() {
                 unsafe { btn.setImage_(unmuted) };
-                let _ = tx_mute.send(true);
+                // let _ = tx_mute.send(true);
             } else {
                 unsafe { btn.setImage_(muted)} ;
-                let _ = tx_mute.send(false);
+                // let _ = tx_mute.send(false);
             }
         }
     });
 
     // set the initial state of the icon
-    tx.send(0.0 != audio::get_volume_from_all_devices()).unwrap();
+    tx.send(audio::get_mute_from_all_devices()).unwrap();
     unsafe { app.run(); }
 }
 
-fn hack_keep_muted(rx: mpsc::Receiver<bool>) {
-    let timeout = std::time::Duration::from_millis(250);
-    let mut state = false;
-    loop {
-        match rx.recv_timeout(timeout) {
-            Ok(mic_live) => {
-                // println!("Seent a change! {} => {}", state, mic_live);
-                state = mic_live
-            },
-            _ => {
-                if state == false {
-                    // println!("FDSAFSDFSAD");
-                    audio::toggle_all(false);
-                }
-            }
-        };
-    }
-}
+// fn hack_keep_muted(rx: mpsc::Receiver<bool>) {
+//     let timeout = std::time::Duration::from_millis(250);
+//     let mut state = false;
+//     loop {
+//         match rx.recv_timeout(timeout) {
+//             Ok(mic_live) => {
+//                 // println!("Seent a change! {} => {}", state, mic_live);
+//                 state = mic_live
+//             },
+//             _ => {
+//                 if state == false {
+//                     // println!("FDSAFSDFSAD");
+//                     audio::toggle_all(false);
+//                 }
+//             }
+//         };
+//     }
+// }
 
 fn hardware_change_listener(tx_ptr: u64) {
     extern fn listener(_id: AudioObjectID,
@@ -158,7 +158,9 @@ fn input_property_listener(tx_ptr: u64) {
         let tmp: *const Sender<bool> = client_input as u64 as *const Sender<bool>;
         let sender = unsafe { &*tmp };
 
-        sender.send(0.0 != audio::get_volume_from_all_devices()).unwrap();
+        let mic_live = audio::get_mute_from_all_devices();
+        sender.send(mic_live).unwrap();
+        println!("- mute event: mic_live == {}", mic_live);
         return 0;
     }
 
@@ -168,7 +170,7 @@ fn input_property_listener(tx_ptr: u64) {
 
     audio::audio_object_add_property_listener(
         audio_obj_id,
-        &selectors::INPUT_VOLUME_ADDRESS,
+        &selectors::INPUT_MUTE_ADDRESS,
         Some(listener),
         tx_ptr,
     );

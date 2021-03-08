@@ -15,24 +15,71 @@ use coreaudio_sys::{
     kAudioObjectSystemObject,
 };
 
-fn get_volume_from_device(audio_obj_id: u32) -> f32 {
-    let mut volume: f32 = 0.0;
+// fn get_volume_from_device(audio_obj_id: u32) -> f32 {
+//     let mut volume: f32 = 0.0;
+//     let _ = audio_object_get_property_data(
+//         audio_obj_id,
+//         &selectors::INPUT_VOLUME_ADDRESS,
+//         0,
+//         std::ptr::null_mut::<c_void>(),
+//         &mut std::mem::size_of_val(&volume),
+//         &mut volume as *mut f32,
+//     );
+//     return volume;
+// }
+
+fn get_mute_from_device(audio_obj_id: u32) -> bool {
+    let mut muted: UInt32 = 0;
     let _ = audio_object_get_property_data(
         audio_obj_id,
-        &selectors::INPUT_VOLUME_ADDRESS,
+        &selectors::INPUT_MUTE_ADDRESS,
         0,
         std::ptr::null_mut::<c_void>(),
-        &mut std::mem::size_of_val(&volume),
-        &mut volume as *mut f32,
+        &mut std::mem::size_of_val(&muted),
+        &mut muted as *mut UInt32,
     );
-    return volume;
+
+    // println!("id {} state {}", audio_obj_id, muted != 1);
+    return muted != 1; // careful here we want to return mic_live not muted
 }
 
-pub fn get_volume_from_all_devices() -> f32 {
+// pub fn get_volume_from_all_devices() -> f32 {
+//     let mut size: usize = 0;
+//     audio_object_get_property_data_size(
+//         kAudioObjectSystemObject,
+//         &selectors::ALL_INPUTS,
+//         0,
+//         std::ptr::null_mut::<c_void>(),
+//         &mut size,
+//     );
+
+//     let mut array: Vec<AudioObjectID> = allocate_array(size);
+
+//     let _ = audio_object_get_property_data(
+//         kAudioObjectSystemObject,
+//         &selectors::INPUT_PROPERTY_ADDRESS,
+//         0,
+//         std::ptr::null_mut::<c_void>(),
+//         &mut size,
+//         array.as_mut_ptr(),
+//     );
+
+//     let mut volume_total = 0.0;
+//     // println!("--");
+//     for device_id in array {
+//         let volume = get_volume_from_device(device_id);
+//         // println!("  Device: {}, vol: {}", device_id, volume);
+//         volume_total += volume;
+//     }
+
+//     return volume_total;
+// }
+
+pub fn get_mute_from_all_devices() -> bool {
     let mut size: usize = 0;
     audio_object_get_property_data_size(
         kAudioObjectSystemObject,
-        &selectors::ALL_INPUTS,
+        &selectors::CURRENT_INPUT,
         0,
         std::ptr::null_mut::<c_void>(),
         &mut size,
@@ -49,22 +96,21 @@ pub fn get_volume_from_all_devices() -> f32 {
         array.as_mut_ptr(),
     );
 
-    let mut volume_total = 0.0;
-    // println!("--");
     for device_id in array {
-        let volume = get_volume_from_device(device_id);
-        // println!("  Device: {}, vol: {}", device_id, volume);
-        volume_total += volume;
+        let mic_live = get_mute_from_device(device_id);
+        if mic_live {
+            return true;
+        }
     }
 
-    return volume_total;
+    return false;
 }
 
 pub fn toggle_all(mute: bool) {
     let mut size: usize = 0;
     audio_object_get_property_data_size(
         kAudioObjectSystemObject,
-        &selectors::ALL_INPUTS,
+        &selectors::CURRENT_INPUT,
         0,
         std::ptr::null_mut::<c_void>(),
         &mut size,
@@ -81,12 +127,10 @@ pub fn toggle_all(mute: bool) {
         array.as_mut_ptr(),
     );
 
-    let vol = if mute { 0.5 } else { 0.0 };
     let mute_in: UInt32 =  if mute { 0 } else { 1 };
     // println!("--");
     for device_id in array {
-        // println!("  Setting {} to {}", device_id, vol);
-        set_volume_on_device(device_id, vol);
+        // println!("  Setting {} to {}", device_id, mute);
         set_mute_on_device(device_id, mute_in);
     }
 }
@@ -105,19 +149,19 @@ fn set_mute_on_device(audio_obj_id: u32, mute: UInt32) {
     // println!("b: {} {} {:?}", audio_obj_id, mute_mut, err);
 }
 
-fn set_volume_on_device(audio_obj_id: u32, vol: f32) {
-    let mut volume: f32 = vol;
-    // println!("a: {} {}", audio_obj_id, volume);
-    let err = audio_object_set_property_data(
-        audio_obj_id,
-        &selectors::INPUT_VOLUME_ADDRESS,
-        0,
-        std::ptr::null_mut::<c_void>(),
-        &mut std::mem::size_of_val(&vol),
-        &mut volume as *mut f32,
-    );
-    // println!("b: {} {} {:?}", audio_obj_id, volume, err);
-}
+// fn set_volume_on_device(audio_obj_id: u32, vol: f32) {
+//     let mut volume: f32 = vol;
+//     // println!("a: {} {}", audio_obj_id, volume);
+//     let err = audio_object_set_property_data(
+//         audio_obj_id,
+//         &selectors::INPUT_VOLUME_ADDRESS,
+//         0,
+//         std::ptr::null_mut::<c_void>(),
+//         &mut std::mem::size_of_val(&vol),
+//         &mut volume as *mut f32,
+//     );
+//     // println!("b: {} {} {:?}", audio_obj_id, volume, err);
+// }
 
 fn audio_object_get_property_data_size<T>(
     in_object_id: AudioObjectID,

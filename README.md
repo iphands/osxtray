@@ -4,8 +4,9 @@ Can't live my global microphone mute tray thingy.
 
 WIP at the moment there are some issues:
 
-- OSX sucks! For some reason **muted** and **vol=0** Zoom and other apps can still hear me :(
+
 - Still need to clean up the old listeners on hardware change :D
+- Fixed: ~~OSX sucks! For some reason **muted** and **vol=0** Zoom and other apps can still hear me :(~~
 - Fixed: ~~including the code does not setup new listeners when devices changes (includes headphones plug/unplug)~~
 - Fixed: ~~There is still some issue where with two devices osxtray might report mute, but Zoom is looking at the
 other mic. I'll probably change the toggle (Apple Script) code to just mute all devices instead of targeting the primary.~~

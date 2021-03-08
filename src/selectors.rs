@@ -14,7 +14,7 @@ use coreaudio_sys::{
     // kAudioDevicePropertyScopeOutput,
     // kAudioObjectPropertyScopeOutput,
     // kAudioObjectPropertyScopeWildcard,
-    kAudioDevicePropertyVolumeScalar,
+    // kAudioDevicePropertyVolumeScalar,
 };
 
 const INPUT_SCOPE: u32 = kAudioObjectPropertyScopeInput;
@@ -26,11 +26,11 @@ pub const INPUT_PROPERTY_ADDRESS: AudioObjectPropertyAddress = AudioObjectProper
     mElement:  ELEMENT,
 };
 
-pub const INPUT_VOLUME_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
-    mSelector: kAudioDevicePropertyVolumeScalar,
-    mScope:    INPUT_SCOPE,
-    mElement:  ELEMENT,
-};
+// pub const INPUT_VOLUME_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
+//     mSelector: kAudioDevicePropertyVolumeScalar,
+//     mScope:    INPUT_SCOPE,
+//     mElement:  ELEMENT,
+// };
 
 pub const INPUT_MUTE_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
     mSelector: kAudioDevicePropertyMute,
@@ -38,8 +38,8 @@ pub const INPUT_MUTE_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAd
     mElement:  ELEMENT,
 };
 
-pub const ALL_INPUTS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
-    mSelector: kAudioHardwarePropertyDevices,
+pub const CURRENT_INPUT: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
+    mSelector: kAudioHardwarePropertyDefaultInputDevice,
     mScope:    INPUT_SCOPE,
     mElement:  ELEMENT,
 };

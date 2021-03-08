@@ -150,7 +150,7 @@ fn hardware_change_listener(tx_ptr: u64) {
 
 fn input_property_listener(tx_ptr: u64) {
 
-    extern fn listener(_id: AudioObjectID,
+    extern fn listener(id: AudioObjectID,
                        _addresses_count: u32,
                        _addresses: *const AudioObjectPropertyAddress,
                        client_input: *mut c_void ) -> OSStatus {
@@ -160,7 +160,7 @@ fn input_property_listener(tx_ptr: u64) {
 
         let mic_live = audio::get_mute_from_all_devices();
         sender.send(mic_live).unwrap();
-        println!("- mute event: mic_live == {}", mic_live);
+        println!("- mute event for device {}: mic_live == {}", id, mic_live);
         return 0;
     }
 

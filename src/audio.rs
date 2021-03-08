@@ -28,9 +28,9 @@ use coreaudio_sys::{
 //     return volume;
 // }
 
-fn get_mute_from_device(audio_obj_id: u32) -> bool {
+fn get_mute_from_device(audio_obj_id: u32) -> Option<bool> {
     let mut muted: UInt32 = 0;
-    let _ = audio_object_get_property_data(
+    let err = audio_object_get_property_data(
         audio_obj_id,
         &selectors::INPUT_MUTE_ADDRESS,
         0,
@@ -39,8 +39,10 @@ fn get_mute_from_device(audio_obj_id: u32) -> bool {
         &mut muted as *mut UInt32,
     );
 
-    // println!("id {} state {}", audio_obj_id, muted != 1);
-    return muted != 1; // careful here we want to return mic_live not muted
+    if err != 0 { return None; }
+
+    // println!("id {} state {} err {}", audio_obj_id, muted != 1, err);
+    return Some(muted != 1); // careful here we want to return mic_live not muted
 }
 
 // pub fn get_volume_from_all_devices() -> f32 {
@@ -79,7 +81,7 @@ pub fn get_mute_from_all_devices() -> bool {
     let mut size: usize = 0;
     audio_object_get_property_data_size(
         kAudioObjectSystemObject,
-        &selectors::CURRENT_INPUT,
+        &selectors::ALL_INPUTS,
         0,
         std::ptr::null_mut::<c_void>(),
         &mut size,
@@ -97,7 +99,11 @@ pub fn get_mute_from_all_devices() -> bool {
     );
 
     for device_id in array {
-        let mic_live = get_mute_from_device(device_id);
+        let mic_live = match get_mute_from_device(device_id) {
+            Some(b) => b,
+            _ => continue
+        };
+
         if mic_live {
             return true;
         }
@@ -106,11 +112,11 @@ pub fn get_mute_from_all_devices() -> bool {
     return false;
 }
 
-pub fn toggle_all(mute: bool) {
+pub fn set_mic_live(state: bool) {
     let mut size: usize = 0;
     audio_object_get_property_data_size(
         kAudioObjectSystemObject,
-        &selectors::CURRENT_INPUT,
+        &selectors::ALL_INPUTS,
         0,
         std::ptr::null_mut::<c_void>(),
         &mut size,
@@ -127,11 +133,11 @@ pub fn toggle_all(mute: bool) {
         array.as_mut_ptr(),
     );
 
-    let mute_in: UInt32 =  if mute { 0 } else { 1 };
+    let state_in: UInt32 =  if state { 0 } else { 1 };
     // println!("--");
     for device_id in array {
         // println!("  Setting {} to {}", device_id, mute);
-        set_mute_on_device(device_id, mute_in);
+        set_mute_on_device(device_id, state_in);
     }
 }
 

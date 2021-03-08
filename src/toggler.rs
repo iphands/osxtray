@@ -4,8 +4,8 @@ mod audio;
 
 fn main() {
     // let vol = audio::get_volume_from_all_devices();
-    let mute = audio::get_mute_from_all_devices();
+    let mic_live = audio::get_mute_from_all_devices();
     // println!("Before: {}", vol);
-    audio::toggle_all(!mute);
+    audio::set_mic_live(!mic_live);
     // println!("After:  {}", audio::get_volume_from_all_devices());
 }

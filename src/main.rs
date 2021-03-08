@@ -69,6 +69,9 @@ fn main() {
     let tx_ptr = &tx as *const Sender<bool> as u64;
     let button_ptr = button as u64;
 
+    // mute all by default
+    audio::set_mic_live(false);
+
     thread::spawn(move || {
         input_property_listener(tx_ptr)
     });
@@ -150,7 +153,7 @@ fn hardware_change_listener(tx_ptr: u64) {
 
 fn input_property_listener(tx_ptr: u64) {
 
-    extern fn listener(id: AudioObjectID,
+    extern fn listener(_id: AudioObjectID,
                        _addresses_count: u32,
                        _addresses: *const AudioObjectPropertyAddress,
                        client_input: *mut c_void ) -> OSStatus {
@@ -160,7 +163,7 @@ fn input_property_listener(tx_ptr: u64) {
 
         let mic_live = audio::get_mute_from_all_devices();
         sender.send(mic_live).unwrap();
-        println!("- mute event for device {}: mic_live == {}", id, mic_live);
+        println!("- mute event: mic_live == {} (all inputs)", mic_live);
         return 0;
     }
 

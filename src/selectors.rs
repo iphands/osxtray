@@ -38,8 +38,14 @@ pub const INPUT_MUTE_ADDRESS: AudioObjectPropertyAddress = AudioObjectPropertyAd
     mElement:  ELEMENT,
 };
 
-pub const CURRENT_INPUT: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
-    mSelector: kAudioHardwarePropertyDefaultInputDevice,
+// pub const CURRENT_INPUT: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
+//     mSelector: kAudioHardwarePropertyDefaultInputDevice,
+//     mScope:    INPUT_SCOPE,
+//     mElement:  ELEMENT,
+// };
+
+pub const ALL_INPUTS: AudioObjectPropertyAddress = AudioObjectPropertyAddress {
+    mSelector: kAudioHardwarePropertyDevices,
     mScope:    INPUT_SCOPE,
     mElement:  ELEMENT,
 };

@@ -93,7 +93,7 @@ pub fn toggle_all(mute: bool) {
 
 fn set_mute_on_device(audio_obj_id: u32, mute: UInt32) {
     let mut mute_mut = mute;
-    println!("a: {} {}", audio_obj_id, mute_mut);
+    // println!("a: {} {}", audio_obj_id, mute_mut);
     let err = audio_object_set_property_data(
         audio_obj_id,
         &selectors::INPUT_MUTE_ADDRESS,
@@ -102,7 +102,7 @@ fn set_mute_on_device(audio_obj_id: u32, mute: UInt32) {
         &mut std::mem::size_of_val(&mute),
         &mut mute_mut as *mut UInt32,
     );
-    println!("b: {} {} {:?}", audio_obj_id, mute_mut, err);
+    // println!("b: {} {} {:?}", audio_obj_id, mute_mut, err);
 }
 
 fn set_volume_on_device(audio_obj_id: u32, vol: f32) {

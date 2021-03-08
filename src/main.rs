@@ -64,6 +64,7 @@ fn init_cocoa() -> (cocoa::base::id, cocoa::base::id) {
 fn main() {
     let (app, button) = init_cocoa();
     let (tx, rx) = mpsc::channel();
+    let (tx_mute, rx_mute) = mpsc::channel();
 
     let tx_ptr = &tx as *const Sender<bool> as u64;
     let button_ptr = button as u64;
@@ -77,6 +78,10 @@ fn main() {
     });
 
     thread::spawn(move || {
+        hack_keep_muted(rx_mute);
+    });
+
+    thread::spawn(move || {
         let btn = button_ptr as cocoa::base::id;
 
         let muted =   load_image(include_bytes!("../assets/muted.png"));
@@ -85,8 +90,10 @@ fn main() {
         loop {
             if rx.recv().unwrap() {
                 unsafe { btn.setImage_(unmuted) };
+                let _ = tx_mute.send(true);
             } else {
                 unsafe { btn.setImage_(muted)} ;
+                let _ = tx_mute.send(false);
             }
         }
     });
@@ -94,6 +101,25 @@ fn main() {
     // set the initial state of the icon
     tx.send(0.0 != audio::get_volume_from_all_devices()).unwrap();
     unsafe { app.run(); }
+}
+
+fn hack_keep_muted(rx: mpsc::Receiver<bool>) {
+    let timeout = std::time::Duration::from_millis(250);
+    let mut state = false;
+    loop {
+        match rx.recv_timeout(timeout) {
+            Ok(mic_live) => {
+                // println!("Seent a change! {} => {}", state, mic_live);
+                state = mic_live
+            },
+            _ => {
+                if state == false {
+                    // println!("FDSAFSDFSAD");
+                    audio::toggle_all(false);
+                }
+            }
+        };
+    }
 }
 
 fn hardware_change_listener(tx_ptr: u64) {

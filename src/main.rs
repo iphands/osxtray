@@ -45,17 +45,13 @@ fn load_image<T>(array: &[T]) -> id {
 
 fn init_cocoa() -> (cocoa::base::id, cocoa::base::id) {
     let app = unsafe {
-        let app = NSApp();
-        app
+        NSApp()
     };
 
     let button = unsafe {
         app.setActivationPolicy_(NSApplicationActivationPolicyProhibited);
-
         let status_item = NSStatusBar::systemStatusBar(nil).statusItemWithLength_(NSVariableStatusItemLength);
-        let button: cocoa::base::id = status_item.button();
-
-        button
+        status_item.button()
     };
 
     return (app, button);
@@ -64,6 +60,8 @@ fn init_cocoa() -> (cocoa::base::id, cocoa::base::id) {
 fn main() {
     let (app, button) = init_cocoa();
     let (tx, rx) = mpsc::channel();
+    msg_send![button, setAction:sel!(onButtonClick:)];
+
     // let (tx_mute, rx_mute) = mpsc::channel();
 
     let tx_ptr = &tx as *const Sender<bool> as u64;
@@ -73,7 +71,7 @@ fn main() {
     audio::set_mic_live(false);
 
     thread::spawn(move || {
-        input_property_listener(tx_ptr)
+        input_property_listener(tx_ptr);
     });
 
     thread::spawn(move || {
@@ -84,25 +82,40 @@ fn main() {
     //     hack_keep_muted(rx_mute);
     // });
 
-    thread::spawn(move || {
-        let btn = button_ptr as cocoa::base::id;
+    // set the initial state of the icon
+    tx.send(audio::get_mute_from_all_devices()).unwrap();
 
-        let muted =   load_image(include_bytes!("../assets/muted.png"));
-        let unmuted = load_image(include_bytes!("../assets/unmuted.png"));
+    // thread to watch the button clicks
+    {
+	let tx = tx.clone();
+	thread::spawn(move || {
+	    gui_click_listener(tx);
+	});
+    }
+
+    thread::spawn(move || {
+	let btn = button_ptr as cocoa::base::id;
+	let muted =   load_image(include_bytes!("../assets/muted-dark.png"));
+	let unmuted = load_image(include_bytes!("../assets/unmuted-dark.png"));
 
         loop {
-            if rx.recv().unwrap() {
-                unsafe { btn.setImage_(unmuted) };
-                // let _ = tx_mute.send(true);
-            } else {
-                unsafe { btn.setImage_(muted)} ;
-                // let _ = tx_mute.send(false);
-            }
+	    match rx.recv() {
+		Ok(b) => {
+		    if b {
+			unsafe { btn.setImage_(unmuted) };
+			// let _ = tx_mute.send(true);
+		    } else {
+			unsafe { btn.setImage_(muted)} ;
+			// let _ = tx_mute.send(false);
+		    }
+		},
+		Err(e) => {
+		    println!("{}", e)
+		}
+	    }
         }
     });
 
-    // set the initial state of the icon
-    tx.send(audio::get_mute_from_all_devices()).unwrap();
     unsafe { app.run(); }
 }
 
@@ -124,6 +137,10 @@ fn main() {
 //         };
 //     }
 // }
+
+fn gui_click_listener(tx: Sender<bool>) {
+    tx.send(false).unwrap();
+}
 
 fn hardware_change_listener(tx_ptr: u64) {
     extern fn listener(_id: AudioObjectID,
